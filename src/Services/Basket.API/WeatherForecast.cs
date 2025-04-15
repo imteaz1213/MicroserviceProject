@@ -1,4 +1,4 @@
-namespace Catalog.api
+namespace Basket.API
 {
     public class WeatherForecast
     {
