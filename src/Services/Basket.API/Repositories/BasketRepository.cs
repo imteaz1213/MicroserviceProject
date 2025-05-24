@@ -12,9 +12,9 @@ namespace Basket.API.Repositories
         {
             _redisCache = redisCache;
         }
-        public Task DeleteBasket(string userName)
+        public async Task DeleteBasket(string userName)
         {
-            throw new NotImplementedException();
+            await _redisCache.RemoveAsync(userName);//removing the user from redis cache
         }
         public async Task<ShoppingCart> GetBasket(string userName)
         {
@@ -25,9 +25,11 @@ namespace Basket.API.Repositories
             }
             return JsonConvert.DeserializeObject<ShoppingCart>(basket);//converting json to object
         }
-        public Task<ShoppingCart> UpdateBasket(ShoppingCart basket)
+        public async Task<ShoppingCart> UpdateBasket(ShoppingCart basket)
         {
-            throw new NotImplementedException();
+            await _redisCache.SetStringAsync(basket.UserName,JsonConvert.SerializeObject(basket));//convert object into json format
+            return await GetBasket(basket.UserName);
+
         }
     }
 }
