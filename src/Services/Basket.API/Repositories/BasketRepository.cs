@@ -21,13 +21,13 @@ namespace Basket.API.Repositories
             var basket = await _redisCache.GetStringAsync(userName);
             if (string.IsNullOrEmpty(basket))
             {
-                throw new Exception("Invalid Username");
+                return null;
             }
             return JsonConvert.DeserializeObject<ShoppingCart>(basket);//converting json to object
         }
         public async Task<ShoppingCart> UpdateBasket(ShoppingCart basket)
         {
-            await _redisCache.SetStringAsync(basket.UserName,JsonConvert.SerializeObject(basket));//convert object into json format
+            await _redisCache.SetStringAsync(basket.UserName, JsonConvert.SerializeObject(basket));
             return await GetBasket(basket.UserName);
 
         }

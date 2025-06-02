@@ -4,6 +4,7 @@ using CoreApiResponse;
 using Basket.API.Repositories;
 using System.Net;
 using Basket.API.Models;
+using Basket.API.GrpcServices;
 namespace Basket.API.Controllers
 {
     [Route("api/[controller]/[action]")]
@@ -11,9 +12,11 @@ namespace Basket.API.Controllers
     public class BasketController : BaseController
     {
         IBasketRepository _basketRepository;
-        public BasketController(IBasketRepository basketRepository)
+        DiscountGrpcService _discountGrpcService;   
+        public BasketController(IBasketRepository basketRepository, DiscountGrpcService discountGrpcService)
         {
             _basketRepository = basketRepository;
+            _discountGrpcService = discountGrpcService;
         }
         [HttpGet]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]        
@@ -27,10 +30,12 @@ namespace Basket.API.Controllers
             }
             catch (Exception e)
             {
-                return CustomResult(e.Message,HttpStatusCode.BadRequest);
+                return CustomResult(e.Message,HttpStatusCode.NotFound);
 
             }
         }
+
+
 
         [HttpPost]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
@@ -38,6 +43,16 @@ namespace Basket.API.Controllers
         {
             try
             {
+                //todo : communicate discount.grpc
+                //calculate latest price 
+                //create discount grpc service 
+
+                foreach(var item in basket.Items)
+                {
+                    var coupon = await _discountGrpcService.GetDiscount(item.ProductId);
+                    item.Price -= coupon.Amount;
+                }
+
                 var updatedBasket = await _basketRepository.UpdateBasket(basket);
                 return CustomResult("Basket updated successfully", updatedBasket);
             }
