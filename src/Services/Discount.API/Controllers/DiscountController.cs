@@ -61,6 +61,8 @@ namespace Discount.API.Controllers
         {
             try
             {
+                //todo : communicate discount.grpc
+                //calculate latest price 
                 var isSaved = await _couponRepository.UpdateDiscount(coupon);
 
                 if (isSaved)
