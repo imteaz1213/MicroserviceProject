@@ -5,6 +5,9 @@ using Basket.API.Repositories;
 using System.Net;
 using Basket.API.Models;
 using Basket.API.GrpcServices;
+using MassTransit;
+using AutoMapper;
+using EventBus.Messages.Events;
 namespace Basket.API.Controllers
 {
     [Route("api/[controller]/[action]")]
@@ -12,11 +15,15 @@ namespace Basket.API.Controllers
     public class BasketController : BaseController
     {
         IBasketRepository _basketRepository;
-        DiscountGrpcService _discountGrpcService;   
-        public BasketController(IBasketRepository basketRepository, DiscountGrpcService discountGrpcService)
+        DiscountGrpcService _discountGrpcService;
+        private readonly IPublishEndpoint _publishEndpoint;
+        IMapper _mapper;
+        public BasketController(IBasketRepository basketRepository, DiscountGrpcService discountGrpcService,IPublishEndpoint publishEndpoint,IMapper mapper)
         {
             _basketRepository = basketRepository;
             _discountGrpcService = discountGrpcService;
+            _publishEndpoint = publishEndpoint;
+            _mapper = mapper;
         }
         [HttpGet]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]        
@@ -75,6 +82,27 @@ namespace Basket.API.Controllers
                 return CustomResult(e.Message, HttpStatusCode.BadRequest);
             }
         }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(void),(int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Checkout([FromBody]BasketCheckout basketCheckout)
+        {
+            var basket = await _basketRepository.GetBasket(basketCheckout.UserName);
+
+            if(basket == null)
+            {
+                return CustomResult("Basket is empty",HttpStatusCode.NoContent);
+            }
+            //send checkout event to rabbitmq
+            var eventMessage = _mapper.Map<BasketCheckoutEvent>(basketCheckout);
+            eventMessage.TotalPrice = basket.TotalPrice;
+            await _publishEndpoint.Publish(eventMessage);
+
+            //remove basket
+            await _basketRepository.DeleteBasket(basket.UserName);
+            return CustomResult("order has been placed");
+        }
     }
 }
+
 
